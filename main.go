@@ -29,7 +29,7 @@ func main() {
 	log.Println("Rendering...")
 	start := time.Now()
 	scale := size / float64(imgWidth)
-	img := rasterize(imgWidth, imgWidth, samples, func(x, y float64) color.RGBA {
+	img := rasterize(imgWidth, imgWidth, samples, func(x, y float64) color.NRGBA {
 		return paint(mandelbrotIter(x*scale+px, y*scale+py, maxIter))
 	})
 	end := time.Now()
@@ -52,8 +52,8 @@ func main() {
 	log.Println("Done!")
 }
 
-func paint(r float64, n int) color.RGBA {
-	var insideSet = color.RGBA{ R: 255, G: 255, B: 255, A: 255 }
+func paint(r float64, n int) color.NRGBA {
+	var insideSet = color.NRGBA{ R: 255, G: 255, B: 255, A: 0 }
 
 	if r > 4 {
 		c := hslToRGB(float64(n) / 800 * r, 1, 0.5)

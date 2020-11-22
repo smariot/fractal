@@ -19,7 +19,7 @@ func hueToRGB(p, q, t float64) float64 {
 	}
 }
 
-func hslToRGB(h, s, l float64) color.RGBA {
+func hslToRGB(h, s, l float64) color.NRGBA {
 	var r, g, b float64
 	if s == 0 {
 		r, g, b = l, l, l
@@ -35,5 +35,5 @@ func hslToRGB(h, s, l float64) color.RGBA {
 		g = hueToRGB(p, q, h)
 		b = hueToRGB(p, q, h - 1.0 / 3.0)
 	}
-	return color.RGBA{ R: uint8(r * 255), G: uint8(g * 255), B: uint8(b * 255), A: 255 }
+	return color.NRGBA{ R: uint8(r * 255), G: uint8(g * 255), B: uint8(b * 255), A: 255 }
 }

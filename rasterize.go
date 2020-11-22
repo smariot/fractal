@@ -44,8 +44,8 @@ var (
 // Due to the way the image filtering, these coordinates may fall outside of the image.
 //
 // cb will be invoked w*h*s*s times.
-func rasterize(w, h, s int, cb func(x, y float64) color.RGBA) *image.RGBA {
-	img := image.NewRGBA(image.Rect(0, 0, w, h))
+func rasterize(w, h, s int, cb func(x, y float64) color.NRGBA) *image.NRGBA {
+	img := image.NewNRGBA(image.Rect(0, 0, w, h))
 	progress := make(chan struct{})
 
 	work := make(chan int)
@@ -68,7 +68,7 @@ func rasterize(w, h, s int, cb func(x, y float64) color.RGBA) *image.RGBA {
 				for x := 0; x < w; x++ {
 					fX := float64(x)
 
-					var r, g, b uint64
+					var r, g, b, a uint64
 
 					for i := 0; i < s*s; i++ {
 						sample := cb(
@@ -76,15 +76,23 @@ func rasterize(w, h, s int, cb func(x, y float64) color.RGBA) *image.RGBA {
 							fY+rng.NormFloat64()*0.44+0.5,
 						)
 
-						r += uint64(gammaToLinear[sample.R])
-						g += uint64(gammaToLinear[sample.G])
-						b += uint64(gammaToLinear[sample.B])
+						r += uint64(gammaToLinear[sample.R])*uint64(sample.A)
+						g += uint64(gammaToLinear[sample.G])*uint64(sample.A)
+						b += uint64(gammaToLinear[sample.B])*uint64(sample.A)
+						a += uint64(sample.A)
 					}
 
-					scanline[x*4+0] = linearToGamma[r/uint64(s*s)]
-					scanline[x*4+1] = linearToGamma[g/uint64(s*s)]
-					scanline[x*4+2] = linearToGamma[b/uint64(s*s)]
-					scanline[x*4+3] = 255
+					if a > 0 {
+						scanline[x*4+0] = linearToGamma[r/a]
+						scanline[x*4+1] = linearToGamma[g/a]
+						scanline[x*4+2] = linearToGamma[b/a]
+						scanline[x*4+3] = uint8(a/uint64(s*s))
+					} else {
+						scanline[x*4+0] = 0
+						scanline[x*4+1] = 0
+						scanline[x*4+2] = 0
+						scanline[x*4+3] = 0
+					}
 				}
 
 				if showProgress {

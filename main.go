@@ -1,14 +1,10 @@
 package main
 
 import (
-	"fmt"
-	"image"
 	"image/color"
 	"image/png"
 	"log"
-	"math/rand"
 	"os"
-	"sync"
 	"time"
 )
 
@@ -30,12 +26,12 @@ const (
 )
 
 func main() {
-	log.Println("Allocating image...")
-	img := image.NewRGBA(image.Rect(0, 0, imgWidth, imgWidth))
-
 	log.Println("Rendering...")
 	start := time.Now()
-	render(img)
+	scale := size / float64(imgWidth)
+	img := rasterize(imgWidth, imgWidth, samples, func(x, y float64) color.RGBA {
+		return paint(mandelbrotIter(x*scale+px, y*scale+py, maxIter))
+	})
 	end := time.Now()
 
 	log.Println("Done rendering in", end.Sub(start))
@@ -49,55 +45,11 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	err = f.Close()
+	if err != nil {
+		panic(err)
+	}
 	log.Println("Done!")
-}
-
-func render(img *image.RGBA) {
-	progress := make(chan struct{})
-
-	// Progress
-	if showProgress {
-		go func() {
-			for i := 1; ; i++ {
-				if _, k := <- progress; !k { break }
-				fmt.Printf("\r%d/%d (%d%%)", i, imgWidth, int(100*(float64(i) / float64(imgWidth))))
-			}
-			fmt.Println()
-		}()
-	}
-
-	var wg sync.WaitGroup
-	for y := 0; y < imgWidth; y++ {
-		wg.Add(1)
-		go func(y int) {
-			for x := 0; x < imgWidth; x++ {
-				var sampledColours [samples]color.RGBA
-				for i := 0; i < samples; i++ {
-					nx := size * ((float64(x) + rand.Float64()) / float64(imgWidth)) + px
-					ny := size * ((float64(y) + rand.Float64()) / float64(imgWidth)) + py
-					sampledColours[i] = paint(mandelbrotIter(nx, ny, maxIter))
-				}
-				var r, g, b int
-				for _, colour := range sampledColours {
-					r += int(colour.R)
-					g += int(colour.G)
-					b += int(colour.B)
-				}
-				img.SetRGBA(x, y, color.RGBA{
-					R: uint8(float64(r) / float64(samples)),
-					G: uint8(float64(g) / float64(samples)),
-					B: uint8(float64(b) / float64(samples)),
-					A: 255,
-				})
-			}
-			if showProgress {
-				progress <- struct{}{}
-			}
-			wg.Done()
-		}(y)
-	}
-	wg.Wait()
-	close(progress)
 }
 
 func paint(r float64, n int) color.RGBA {
